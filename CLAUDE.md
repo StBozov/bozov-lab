@@ -75,6 +75,8 @@ Installed via Helm (release `longhorn`, namespace `longhorn-system`), `--set def
 - Default StorageClass `longhorn` uses `numberOfReplicas: "2"` as agreed.
 - Longhorn reserves ~140GB/node (25% default safety margin) before replication — real usable pool capacity is **~500GB**, not the naive raw÷2 estimate. Adjustable later (`defaultSettings.storageMinimalAvailablePercentage` / per-disk `storageReserved`) if more usable space is wanted over safety margin.
 - Prerequisites fixed on all 3 workers first: `iscsid` enabled+started, `nfs-common` installed, `dm_crypt` module loaded (persisted via `/etc/modules-load.d/dm_crypt.conf`).
+- `longhorn` is the sole default StorageClass (k3s's built-in `local-path` had its default annotation removed — having two defaults is undefined/risky behavior for PVCs that don't specify a class). Any app not specifying `storageClassName` gets resilient Longhorn storage automatically.
+- Verified end-to-end: test PVC + pod in `longhorn-test` namespace, wrote data, deleted and recreated the pod, data survived. Clean up with `kubectl delete namespace longhorn-test` when done exploring.
 - Longhorn's own UI is exposed too: `http://192.168.0.133:30219` (NodePort, same all-4-nodes behavior as Headlamp). **No login by default** — unlike Headlamp, anyone on the LAN reaching that port has full admin access (delete volumes, change settings). Accepted as-is for now on a private home network; revisit with basic auth if that ever matters.
 
 ## Cluster UI
