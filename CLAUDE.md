@@ -70,8 +70,10 @@ Usage: `ssh control "command"`, `ssh worker1 "command"`, etc. `sudo` needs no pa
 
 **Headlamp** (the official successor to Kubernetes Dashboard, which was archived 2026-01-21) is installed via Helm, release `my-headlamp` in the `kube-system` namespace, bound to `cluster-admin` via ClusterRoleBinding `my-headlamp-admin`, exposed as a NodePort service.
 
-- URL: `http://192.168.0.133:30519` (or any node's IP on that port)
-- Login: paste a token, generated with `kubectl create token my-headlamp -n kube-system --duration=8760h` (run on `control` with `KUBECONFIG=/etc/rancher/k3s/k3s.yaml`) — **never commit the token itself to this repo**, it's a cluster-admin credential.
+- URL: `http://192.168.0.133:30519` — static (both the node IP and the NodePort are fixed). It's a NodePort service, so Kubernetes opens port `30519` on **all 4 nodes**, not just `control`: `http://192.168.0.72:30519`, `.237:30519`, `.37:30519` all work too, routing to wherever the pod actually is. Useful fallback if `control` is ever down.
+- The pod itself (`my-headlamp` deployment, `kube-system` namespace) runs on whichever worker Kubernetes schedules it to — currently `worker1`, but it'll auto-reschedule to another worker if that one goes down. `control` never runs it (tainted). Check with: `kubectl get pods -n kube-system -l app.kubernetes.io/name=headlamp -o wide`.
+- Login: paste a token into the browser, generated with `kubectl create token my-headlamp -n kube-system --duration=8760h` (run on `control` with `KUBECONFIG=/etc/rancher/k3s/k3s.yaml`) — **never commit the token itself to this repo**, it's a cluster-admin credential. No server-side session: the browser remembers it via local storage per-browser/device until the token expires or storage is cleared; a new browser/device needs the token pasted again.
+- Troubleshooting starting points: `kubectl get pods -n kube-system -l app.kubernetes.io/name=headlamp -o wide` (is it Running, which node), `kubectl get svc my-headlamp -n kube-system` (confirm NodePort still 30519), `kubectl logs -n kube-system -l app.kubernetes.io/name=headlamp` (pod logs), `helm status my-headlamp -n kube-system` (release health).
 - Known minor issue: `metrics-server` readiness probe fails intermittently on `control` (common k3s/kubelet TLS quirk) — not yet fixed, cosmetic for now (just means CPU/memory graphs may be incomplete).
 
 ## Decisions log
