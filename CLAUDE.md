@@ -75,7 +75,7 @@ Installed via Helm (release `longhorn`, namespace `longhorn-system`), `--set def
 - Default StorageClass `longhorn` uses `numberOfReplicas: "2"` as agreed.
 - Longhorn reserves ~140GB/node (25% default safety margin) before replication — real usable pool capacity is **~500GB**, not the naive raw÷2 estimate. Adjustable later (`defaultSettings.storageMinimalAvailablePercentage` / per-disk `storageReserved`) if more usable space is wanted over safety margin.
 - Prerequisites fixed on all 3 workers first: `iscsid` enabled+started, `nfs-common` installed, `dm_crypt` module loaded (persisted via `/etc/modules-load.d/dm_crypt.conf`).
-- Longhorn's own UI exists too but Headlamp is the primary cluster UI for now; Longhorn UI not separately exposed.
+- Longhorn's own UI is exposed too: `http://192.168.0.133:30219` (NodePort, same all-4-nodes behavior as Headlamp). **No login by default** — unlike Headlamp, anyone on the LAN reaching that port has full admin access (delete volumes, change settings). Accepted as-is for now on a private home network; revisit with basic auth if that ever matters.
 
 ## Cluster UI
 
