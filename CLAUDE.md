@@ -48,8 +48,18 @@ Usage: `ssh control "command"`, `ssh worker1 "command"`, etc. `sudo` needs no pa
 ## Current state (2026-10-25)
 
 - k3s is **not installed yet** on any node.
-- OS packages being brought current via `apt full-upgrade`: `control` done (needs reboot), workers in progress.
-- NVMe drives on the 3 workers are mounted but idle — root filesystem is still on the SD card. Decision pending: move root or at least k3s storage to NVMe before installing k3s, since SD cards wear out fast under Kubernetes' write load.
+- OS packages fully updated via `apt full-upgrade` on all 4 nodes — **all 4 need a reboot** (kernel updates) before proceeding.
+- NVMe drives on the 3 workers are mounted but idle — plan is to use them as a replicated Longhorn storage pool (see Architecture below), not as the boot/root disk.
+- Longhorn prerequisites checked on workers: `open-iscsi` and `cryptsetup` installed; `iscsid` service installed but not enabled/running; `nfs-common` missing; `dm_crypt` kernel module available but not loaded. Need to fix these before installing Longhorn.
+
+## Architecture (agreed plan)
+
+- **Control plane**: `control` runs only the k3s server component — tainted so no workloads are scheduled there, just cluster brain duties.
+- **Workers**: `worker1/2/3` run all actual workloads.
+- **Storage**: Longhorn, pooling the 3 workers' 512GB NVMe drives (1536GB raw). Default to **2 replicas per volume** (~768GB usable, survives any 1 worker dying) rather than Longhorn's default of 3 (which would waste 2/3 of raw capacity for only 1 node's worth of usable space). Replica count is configurable per storage class/volume, so critical data can use more replicas and scratch data fewer, later.
+- **Networking**: k3s defaults for now (Flannel CNI, Traefik ingress). MetalLB is a likely future addition once something real is running, to get LAN IPs for services instead of NodePorts.
+- **Repo layout (planned, not yet created)**: `bootstrap/` for node/k3s setup scripts, `manifests/` for what's deployed on the cluster, `.github/workflows/` for automation that should run independent of the home lab's uptime (CI checks, image builds, etc.) rather than on k3s itself.
+- **Future, not now**: considered exposing some services publicly later via the ISP (router port-forward) or a Cloudflare Tunnel — no decision made, revisit when there's an actual service worth exposing.
 
 ## Decisions log
 
