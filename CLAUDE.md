@@ -11,7 +11,9 @@ One single k3s cluster, 4 nodes, fully working as of 2026-10-25:
 - ✅ Longhorn storage installed, pooling the 3 workers' NVMe drives, verified end-to-end (wrote data, killed the pod, data survived)
 - ✅ Headlamp UI reachable from Windows for visual cluster state
 - ⏳ Not yet done: nothing deployed to the cluster yet beyond infra — **ready to start deploying real apps**
+- ⚠️ **Action needed**: `control`'s OS (Ubuntu 25.04) has been EOL/unsupported since 2026-01-15 — no security patches for 9+ months. Should be reflashed to Ubuntu 24.04 LTS (matching the workers) or upgraded to a current release. Not yet done.
 - 🐛 Known minor issue: `metrics-server` readiness probe flaky on `control` (cosmetic, CPU/memory graphs may be incomplete)
+- 💤 Cluster is intentionally powered off between sessions (user doesn't want it running 24/7) — if SSH/kubectl aren't responding, check whether it's just off before assuming something's broken. See "Power management" for how to bring it back up.
 
 ## Hardware & network
 
@@ -19,7 +21,7 @@ One single k3s cluster, 4 nodes, fully working as of 2026-10-25:
 
 | Role | SSH alias | Hostname | LAN IP (fixed) | MAC (eth0) | RAM | Boot disk | Extra disk | OS |
 |---|---|---|---|---|---|---|---|---|
-| control-plane | `control` | pi5.local | 192.168.0.133 | `2c:cf:67:75:ef:d4` | 8GB | 256GB SD | none | Ubuntu 25.04 (non-LTS, EOL ~Jan 2027) |
+| control-plane | `control` | pi5.local | 192.168.0.133 | `2c:cf:67:75:ef:d4` | 8GB | 256GB SD | none | Ubuntu 25.04 — **EOL since 2026-01-15, unsupported, no security updates** ⚠️ |
 | worker | `worker1` | pi5-node-1.local | 192.168.0.72 | `88:a2:9e:04:41:93` | 16GB | 64GB SD | 512GB NVMe, pooled into Longhorn | Ubuntu 24.04 LTS |
 | worker | `worker2` | pi5-node-2.local | 192.168.0.237 | `88:a2:9e:04:42:e9` | 16GB | 64GB SD | 512GB NVMe, pooled into Longhorn | Ubuntu 24.04 LTS |
 | worker | `worker3` | pi5-node-3.local | 192.168.0.37 | `88:a2:9e:23:d6:7a` | 16GB | 64GB SD | 512GB NVMe, pooled into Longhorn | Ubuntu 24.04 LTS |
@@ -52,7 +54,7 @@ This Claude Code session has a project-level `.claude/settings.json` allowing `s
 
 **Headlamp** (cluster UI) — the official successor to Kubernetes Dashboard, which was archived 2026-01-21; Helm release `my-headlamp`, namespace `kube-system`, bound to `cluster-admin`. UI: `http://192.168.0.133:30519` (NodePort, also reachable via any node's IP). **Login required**: paste a token, generate with `kubectl create token my-headlamp -n kube-system --duration=8760h` run on `control`. No server-side session — browser remembers it via local storage per-browser/device until expiry or cleared storage. Never commit the token itself.
 
-Troubleshooting either: `kubectl get pods -n <namespace> -o wide`, `kubectl get svc -n <namespace>`, `kubectl logs`, `helm status <release> -n <namespace>`.
+Troubleshooting Longhorn or Headlamp: `kubectl get pods -n <namespace> -o wide`, `kubectl get svc -n <namespace>`, `kubectl logs`, `helm status <release> -n <namespace>`.
 
 ## Validated so far
 
@@ -78,7 +80,7 @@ User doesn't want the lab running 24/7 (it's physically in their home). Tested 2
 
 ## Decisions log
 
-- OS version mismatch kept (`control` on 25.04, workers on 24.04 LTS) rather than reflashing/upgrading in place — not a blocker for k3s. Revisit before 25.04 EOL.
+- OS version mismatch kept (`control` on 25.04, workers on 24.04 LTS) rather than reflashing/upgrading in place — not a blocker for k3s at the time. **25.04 has since reached EOL (2026-01-15)** — this is now a real action item, not just a future one (see "Status at a glance").
 - Repo kept public; user explicitly accepted the LAN-topology disclosure.
 - Claude Code has direct push access to this repo via Git Credential Manager (no token ever handled by Claude).
 - k3s install gotcha (informational, already resolved): on `control`'s 6.14 kernel, Raspberry Pi firmware injects `cgroup_disable=memory` into the boot cmdline; the classic `cgroup_enable=memory` fix didn't override it there (did work on workers' 6.8 kernel) — turned out to be a red herring, cgroup v2's controller was fine regardless. Real fix was just the reboot already needed for other reasons.
