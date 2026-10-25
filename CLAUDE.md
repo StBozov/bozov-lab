@@ -74,6 +74,7 @@ User doesn't want the lab running 24/7 (it's physically in their home). Tested 2
 - **Shutdown**: fully automatable — `ssh <alias> "sudo poweroff"` on all 4 nodes (in parallel, no interdependency). Works reliably, confirmed via SSH unreachability afterward.
 - **Power-on**: **not automatable today**. Raspberry Pi 5 does not support Wake-on-LAN (confirmed via Raspberry Pi's own team stance — hardware limitation, not a config issue). Once powered off, a human must physically restore power (e.g. flip the power strip switch). No current workaround.
 - To close this gap: the user would need smart plugs (e.g. TP-Link Kasa, Shelly) between the wall outlet and each Pi's power supply (or one covering the strip feeding all 4) with a locally-reachable API — not yet purchased/set up. Revisit if the user wants true one-request power-on.
+- Full cycle verified 2026-10-25: all 4 powered off via SSH, physically powered back on by the user (control first, then workers — not strictly required since k3s-agent retries, but the clean order), cluster fully self-recovered with zero manual fixes. One transient CSI plugin container crashloop during the chaotic cold-boot startup self-resolved within ~30s (classic startup race: node-driver-registrar timed out waiting for a socket that came up moments later) — expected noise, not a real issue.
 
 ## Decisions log
 
