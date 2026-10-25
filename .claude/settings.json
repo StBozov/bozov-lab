@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ssh control *)",
+      "Bash(ssh worker1 *)",
+      "Bash(ssh worker2 *)",
+      "Bash(ssh worker3 *)"
+    ]
+  }
+}

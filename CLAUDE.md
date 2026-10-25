@@ -10,10 +10,10 @@ Home Kubernetes (k3s) lab on 4 Raspberry Pi 5 nodes. Purpose: learn Linux/Kubern
 
 | Role | SSH alias | Hostname | LAN IP | RAM | Boot disk | Extra disk | OS |
 |---|---|---|---|---|---|---|---|
-| control-plane | `control` | pi5.local | 192.168.0.132 (eth0) / 192.168.68.106 (wifi) | 8GB | 256GB SD | none | Ubuntu 25.04 (non-LTS, EOL ~Jan 2026) |
-| worker | `worker1` | pi5-node-1.local | 192.168.0.72 | 16GB | 64GB SD | 512GB NVMe @ `/mnt/nvme` (unused) | Ubuntu 24.04 LTS |
-| worker | `worker2` | pi5-node-2.local | 192.168.0.237 | 16GB | 64GB SD | 512GB NVMe @ `/mnt/nvme` (unused) | Ubuntu 24.04 LTS |
-| worker | `worker3` | pi5-node-3.local | 192.168.0.37 | 16GB | 64GB SD | 512GB NVMe @ `/mnt/nvme` (unused) | Ubuntu 24.04 LTS |
+| control-plane | `control` | pi5.local | 192.168.0.133 (eth0, DHCP — **changes on reboot**, no reservation set yet) | 8GB | 256GB SD | none | Ubuntu 25.04 (non-LTS, EOL ~Jan 2026) |
+| worker | `worker1` | pi5-node-1.local | 192.168.0.72 (DHCP) | 16GB | 64GB SD | 512GB NVMe @ `/mnt/nvme` (not yet in Longhorn pool) | Ubuntu 24.04 LTS |
+| worker | `worker2` | pi5-node-2.local | 192.168.0.237 (DHCP) | 16GB | 64GB SD | 512GB NVMe @ `/mnt/nvme` (not yet in Longhorn pool) | Ubuntu 24.04 LTS |
+| worker | `worker3` | pi5-node-3.local | 192.168.0.37 (DHCP) | 16GB | 64GB SD | 512GB NVMe @ `/mnt/nvme` (not yet in Longhorn pool) | Ubuntu 24.04 LTS |
 
 ## How to connect
 
@@ -47,10 +47,12 @@ Usage: `ssh control "command"`, `ssh worker1 "command"`, etc. `sudo` needs no pa
 
 ## Current state (2026-10-25)
 
-- k3s is **not installed yet** on any node.
-- OS packages fully updated via `apt full-upgrade` on all 4 nodes — **all 4 need a reboot** (kernel updates) before proceeding.
-- NVMe drives on the 3 workers are mounted but idle — plan is to use them as a replicated Longhorn storage pool (see Architecture below), not as the boot/root disk.
-- Longhorn prerequisites checked on workers: `open-iscsi` and `cryptsetup` installed; `iscsid` service installed but not enabled/running; `nfs-common` missing; `dm_crypt` kernel module available but not loaded. Need to fix these before installing Longhorn.
+- **k3s cluster is live.** `control` (k3s server, tainted `node-role.kubernetes.io/control-plane:NoSchedule`) + `worker1/2/3` (k3s agents) all show `Ready`. k3s version v1.36.5+k3s1. Kubeconfig on `control` at `/etc/rancher/k3s/k3s.yaml` (mode 644).
+- Known gotcha hit during install: on `control` (Ubuntu 25.04, kernel 6.14), the Raspberry Pi firmware injects `cgroup_disable=memory` into the boot cmdline by default, which the classic `cgroup_enable=memory` cmdline.txt fix does NOT override on this kernel (it did work on the workers' 6.8 kernel). Turned out to be a red herring for the actual k3s failure — cgroup v2's `/sys/fs/cgroup/cgroup.controllers` already listed `memory` as available regardless. The real fix was just a reboot (needed anyway for the `cgroup_memory=1 cgroup_enable=memory` cmdline.txt addition applied to all 4 nodes) — k3s started fine after that.
+- `control`'s IP changes on reboot (DHCP, no reservation) — went from .132 to .133 after the last reboot. **TODO: set a DHCP reservation for `control`** before relying on its IP anywhere (e.g. worker join configs use it).
+- NVMe drives on the 3 workers are mounted but not yet in use — next step is installing Longhorn to pool them (see Architecture below).
+- Longhorn prerequisites checked on workers: `open-iscsi` and `cryptsetup` installed; `iscsid` service installed but not enabled/running; `nfs-common` missing; `dm_crypt` kernel module available but not loaded. Still need to fix these before installing Longhorn.
+- Added `.claude/settings.json` (committed) allowing Bash commands prefixed `ssh control/worker1/worker2/worker3` without classifier prompts — scoped to just these 4 SSH aliases. Reading actual secret files (e.g. the k3s node-token) is still hard-blocked regardless of allow rules; the user retrieves those manually when needed.
 
 ## Architecture (agreed plan)
 
