@@ -55,6 +55,7 @@ Usage: `ssh control "command"`, `ssh worker1 "command"`, etc. `sudo` needs no pa
 
 - Keeping OS version mismatch (`control` on 25.04, workers on 24.04 LTS) rather than reflashing/upgrading in place — not a blocker for k3s. Revisit before 25.04 EOL (~Jan 2026).
 - Repo kept public; user explicitly accepted the LAN-topology disclosure.
+- Claude Code push access to this repo confirmed working (2026-10-25) via Git Credential Manager — no token handled by Claude.
 
 ## Working agreement
 
