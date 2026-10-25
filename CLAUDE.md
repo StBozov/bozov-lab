@@ -68,6 +68,13 @@ Nothing's deployed yet beyond infra. Plan for when real apps go in:
 - Don't specify `storageClassName` unless you deliberately want something other than Longhorn's default resilient storage.
 - `.github/workflows/` is reserved for automation that shouldn't depend on the home lab's uptime/power (CI checks, image builds, scheduled jobs hitting external services) — not yet set up, nothing needs it yet.
 
+## Power management
+
+User doesn't want the lab running 24/7 (it's physically in their home). Tested 2026-10-25:
+- **Shutdown**: fully automatable — `ssh <alias> "sudo poweroff"` on all 4 nodes (in parallel, no interdependency). Works reliably, confirmed via SSH unreachability afterward.
+- **Power-on**: **not automatable today**. Raspberry Pi 5 does not support Wake-on-LAN (confirmed via Raspberry Pi's own team stance — hardware limitation, not a config issue). Once powered off, a human must physically restore power (e.g. flip the power strip switch). No current workaround.
+- To close this gap: the user would need smart plugs (e.g. TP-Link Kasa, Shelly) between the wall outlet and each Pi's power supply (or one covering the strip feeding all 4) with a locally-reachable API — not yet purchased/set up. Revisit if the user wants true one-request power-on.
+
 ## Decisions log
 
 - OS version mismatch kept (`control` on 25.04, workers on 24.04 LTS) rather than reflashing/upgrading in place — not a blocker for k3s. Revisit before 25.04 EOL.
