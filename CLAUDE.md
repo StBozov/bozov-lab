@@ -66,6 +66,17 @@ Usage: `ssh control "command"`, `ssh worker1 "command"`, etc. `sudo` needs no pa
 - **Repo layout (planned, not yet created)**: `bootstrap/` for node/k3s setup scripts, `manifests/` for what's deployed on the cluster, `.github/workflows/` for automation that should run independent of the home lab's uptime (CI checks, image builds, etc.) rather than on k3s itself.
 - **Future, not now**: considered exposing some services publicly later via the ISP (router port-forward) or a Cloudflare Tunnel — no decision made, revisit when there's an actual service worth exposing.
 
+## Storage (Longhorn)
+
+Installed via Helm (release `longhorn`, namespace `longhorn-system`), `--set defaultSettings.defaultDataPath=/mnt/nvme/longhorn --set persistence.defaultClassReplicaCount=2 --set defaultSettings.defaultReplicaCount=2`.
+
+- Confirmed: all Longhorn components scheduled only on `worker1/2/3` (the control-plane taint needed no extra tolerations/config to keep `control` clean).
+- Each worker has a disk registered at `/mnt/nvme/longhorn` (on the NVMe, not the SD card).
+- Default StorageClass `longhorn` uses `numberOfReplicas: "2"` as agreed.
+- Longhorn reserves ~140GB/node (25% default safety margin) before replication — real usable pool capacity is **~500GB**, not the naive raw÷2 estimate. Adjustable later (`defaultSettings.storageMinimalAvailablePercentage` / per-disk `storageReserved`) if more usable space is wanted over safety margin.
+- Prerequisites fixed on all 3 workers first: `iscsid` enabled+started, `nfs-common` installed, `dm_crypt` module loaded (persisted via `/etc/modules-load.d/dm_crypt.conf`).
+- Longhorn's own UI exists too but Headlamp is the primary cluster UI for now; Longhorn UI not separately exposed.
+
 ## Cluster UI
 
 **Headlamp** (the official successor to Kubernetes Dashboard, which was archived 2026-01-21) is installed via Helm, release `my-headlamp` in the `kube-system` namespace, bound to `cluster-admin` via ClusterRoleBinding `my-headlamp-admin`, exposed as a NodePort service.
