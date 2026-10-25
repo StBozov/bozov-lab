@@ -66,6 +66,14 @@ Usage: `ssh control "command"`, `ssh worker1 "command"`, etc. `sudo` needs no pa
 - **Repo layout (planned, not yet created)**: `bootstrap/` for node/k3s setup scripts, `manifests/` for what's deployed on the cluster, `.github/workflows/` for automation that should run independent of the home lab's uptime (CI checks, image builds, etc.) rather than on k3s itself.
 - **Future, not now**: considered exposing some services publicly later via the ISP (router port-forward) or a Cloudflare Tunnel — no decision made, revisit when there's an actual service worth exposing.
 
+## Cluster UI
+
+**Headlamp** (the official successor to Kubernetes Dashboard, which was archived 2026-01-21) is installed via Helm, release `my-headlamp` in the `kube-system` namespace, bound to `cluster-admin` via ClusterRoleBinding `my-headlamp-admin`, exposed as a NodePort service.
+
+- URL: `http://192.168.0.133:30519` (or any node's IP on that port)
+- Login: paste a token, generated with `kubectl create token my-headlamp -n kube-system --duration=8760h` (run on `control` with `KUBECONFIG=/etc/rancher/k3s/k3s.yaml`) — **never commit the token itself to this repo**, it's a cluster-admin credential.
+- Known minor issue: `metrics-server` readiness probe fails intermittently on `control` (common k3s/kubelet TLS quirk) — not yet fixed, cosmetic for now (just means CPU/memory graphs may be incomplete).
+
 ## Decisions log
 
 - Keeping OS version mismatch (`control` on 25.04, workers on 24.04 LTS) rather than reflashing/upgrading in place — not a blocker for k3s. Revisit before 25.04 EOL (~Jan 2026).
