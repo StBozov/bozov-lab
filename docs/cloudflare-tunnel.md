@@ -7,7 +7,8 @@ How we'll expose cluster services to the public internet, eventually under a rea
 - ✅ **Mechanism validated end-to-end** (2026-11-01) via a Cloudflare Quick Tunnel — no domain, no account needed for this test. A disposable test app + `cloudflared` pod inside the cluster produced a public `*.trycloudflare.com` URL that served the app's page. Confirms the whole chain works: outbound tunnel from inside the cluster → Cloudflare edge → back down to the app.
 - ✅ **Domain purchased**: `bozov-lab.com`, via Cloudflare Registrar, 2026-11-01 (WHOIS Privacy, DNSSEC, Email Forwarding included). Already on Cloudflare's own DNS, no nameserver-pointing step needed.
 - ✅ **Production tunnel live** (2026-11-01): named tunnel `bozov-lab` created, `cloudflared` deployed properly in-cluster, first route mapped and verified — `https://test.bozov-lab.com` serves the test app, confirmed working from inside the home network. See "Production setup" below for full details and next time's gotchas.
-- ⏳ **Still to verify**: opening `test.bozov-lab.com` from *outside* the home network (e.g. phone on mobile data) — the home-network test proves the chain works, but doesn't rule out something resolving locally. Worth a quick check when convenient, not blocking.
+- ✅ **Full power-cycle resilience verified** (2026-11-01): domain auto-recovers with zero manual steps after a complete shutdown/restart of all 4 nodes. Also found a real limitation along the way — see "Checking availability" below for the full breakdown of failure modes.
+- ⏳ **Still to verify**: opening `test.bozov-lab.com` from *outside* the home network (e.g. phone on mobile data) — the home-network and automated tests both prove the chain works, but this would be the final confirmation. Worth a quick check when convenient, not blocking.
 - 🧹 `tunnel-test` namespace (the nginx "hello" app) is now **actively serving** `test.bozov-lab.com` — don't delete it until replaced with a real app and its route updated accordingly.
 
 ## Why Cloudflare Tunnel (not a router port-forward)
@@ -67,5 +68,90 @@ Quick Tunnel limits (fine for this test, not for production): URL is random and 
 First route created: `test.bozov-lab.com` → `http://hello.tunnel-test.svc.cluster.local:80` (the `tunnel-test` app). Verified with `curl -s https://test.bozov-lab.com/` returning `200` and the expected page content.
 
 **To expose a new app later**: just repeat the routing steps above with a new subdomain and that app's internal Service address — the tunnel and `cloudflared` deployment don't need to change, one tunnel serves multiple hostnames.
+
+## Checking availability
+
+Quick health check for any route, including the current `test.bozov-lab.com` one:
+
+```
+curl -s -o /dev/null -w '%{http_code}\n' https://test.bozov-lab.com/
+```
+
+What the response code actually tells you — confirmed empirically by deliberately breaking things during resilience testing (2026-11-01):
+
+| Code | Meaning | Confirmed cause |
+|---|---|---|
+| `200` | Healthy, fully working | Normal operation |
+| `502` Bad Gateway | Cloudflare reached `cloudflared` fine, but `cloudflared` couldn't reach the backend app | Only `control` was powered off. `cloudflared` (on a worker) stayed up and kept its tunnel connection, but CoreDNS — the cluster's internal DNS — was running *on* `control` and went down with it, so `hello.tunnel-test.svc.cluster.local` couldn't be resolved. This also revealed a real limitation: with a single control-plane node, nothing can reschedule CoreDNS elsewhere while `control` is down, since the thing that would do that rescheduling is the thing that's down. |
+| `530` | Cloudflare can't reach the tunnel at all | All 4 nodes were powered off — `cloudflared` itself wasn't running anywhere. Recovered automatically within seconds of `cloudflared`'s pod starting again after nodes came back. |
+
+Deeper diagnosis when a route isn't healthy:
+1. `kubectl get pods -n cloudflare-tunnel -o wide` — is `cloudflared` itself running?
+2. `kubectl get pods -n kube-system -l k8s-app=kube-dns -o wide` — is CoreDNS running? (A `502` on an otherwise-healthy cluster points here first.)
+3. `kubectl get pods -n <app-namespace> -o wide` — is the actual app running?
+4. `kubectl logs -n cloudflare-tunnel -l app=cloudflared --tail=30` — connection status and errors from `cloudflared`'s own perspective.
+
+## Walkthrough: deploying a new app and exposing it publicly
+
+Two independent halves — deploying the app is a normal Kubernetes task, exposing it is just adding one route. Neither touches `cloudflared` itself.
+
+### Part 1: deploy the app
+
+1. Create a folder `apps/<app-name>/` in this repo (see `docs/cluster.md` → "Deploying apps" for the convention) with its manifests. Minimal example — a Deployment + a ClusterIP Service (the thing a route will point at):
+
+   ```yaml
+   # apps/<app-name>/deployment.yaml
+   apiVersion: apps/v1
+   kind: Deployment
+   metadata:
+     name: <app-name>
+     namespace: <app-name>
+   spec:
+     replicas: 1
+     selector:
+       matchLabels: {app: <app-name>}
+     template:
+       metadata:
+         labels: {app: <app-name>}
+       spec:
+         containers:
+         - name: <app-name>
+           image: <your-image>
+           ports:
+           - containerPort: <app-port>
+   ---
+   apiVersion: v1
+   kind: Service
+   metadata:
+     name: <app-name>
+     namespace: <app-name>
+   spec:
+     selector: {app: <app-name>}
+     ports:
+     - port: <app-port>
+       targetPort: <app-port>
+   ```
+
+   Add a `PersistentVolumeClaim` (and a `volumeMounts`/`volumes` pair) if it needs storage — no `storageClassName` needed, `longhorn` is the cluster default. See `docs/cluster.md` → "Cluster architecture" for the storage details.
+
+2. Create the namespace and apply: `kubectl create namespace <app-name>; kubectl apply -f apps/<app-name>/`.
+3. Confirm it's running: `kubectl get pods -n <app-name>`.
+
+At this point the app exists and is reachable *inside* the cluster, at `<app-name>.<app-name>.svc.cluster.local:<app-port>` — but not yet from the internet.
+
+### Part 2: add the route
+
+Same steps as the "Production setup" section above, generalized:
+
+1. Cloudflare dashboard → Networking → Tunnels → `bozov-lab` → **Routes** tab → **+ Add route** → **Published application**.
+2. Subdomain: whatever you want (e.g. `<app-name>`, giving `<app-name>.bozov-lab.com`). Domain: `bozov-lab.com`.
+3. Service type `HTTP`, Service URL `http://<app-name>.<app-name>.svc.cluster.local:<app-port>` — **remember the `http://` prefix**, the field rejects a bare hostname:port.
+4. Save.
+
+### Part 3: verify
+
+`curl -s -o /dev/null -w '%{http_code}\n' https://<app-name>.bozov-lab.com/` — expect `200`. Live within about a minute of saving the route.
+
+That's the whole repeatable pattern — every future app follows these same three parts.
 
 **Troubleshooting `cloudflared` in-cluster**: `kubectl get pods -n cloudflare-tunnel -o wide` (is it Running, which node), `kubectl logs -n cloudflare-tunnel -l app=cloudflared` (connection status, errors), `kubectl rollout restart deployment cloudflared -n cloudflare-tunnel` (force a fresh reconnect if the tunnel ever shows unhealthy in the dashboard). Remember `control` is tainted, so like everything else it'll only ever schedule onto a worker.
