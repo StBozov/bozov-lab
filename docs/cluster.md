@@ -1,18 +1,16 @@
 # Skill: k3s cluster
 
-Everything about the 4-node Raspberry Pi 5 k3s cluster itself — hardware, access, architecture, storage, UI, and what's been validated. For exposing cluster services to the public internet, see `docs/cloudflare-tunnel.md` instead.
+Everything about the 4-node Raspberry Pi 5 k3s cluster itself — hardware, access, architecture, storage, UI. For exposing cluster services to the public internet, see `docs/cloudflare-tunnel.md` instead.
 
 ## Status at a glance
 
-One single k3s cluster, 4 nodes, fully working as of 2026-10-25 (last full validation):
-- ✅ Cluster up, static IPs, reboot-resilient (verified twice) and node-failure-resilient (verified: powered off a worker, cluster kept serving, Kubernetes evicted/rescheduled its pods automatically)
-- ✅ Longhorn storage installed, pooling the 3 workers' NVMe drives, verified end-to-end (wrote data, killed the pod, data survived)
-- ✅ Headlamp UI reachable from Windows for visual cluster state
-- ✅ Full power-off/power-on cycle verified (2026-10-25) — see "Power management" below
-- ⏳ Not yet done: no real apps deployed beyond infra/test workloads yet
-- ⚠️ **Action needed**: `control`'s OS (Ubuntu 25.04) has been EOL/unsupported since 2026-01-15 — no security patches for 9+ months. Should be reflashed to Ubuntu 24.04 LTS (matching the workers) or upgraded to a current release. Not yet done.
-- 🐛 Known minor issue: `metrics-server` readiness probe flaky on `control` (cosmetic, CPU/memory graphs may be incomplete)
-- 💤 Cluster is intentionally powered off between sessions (user doesn't want it running 24/7) — if SSH/kubectl aren't responding, check whether it's just off before assuming something's broken. See "Power management" for how to bring it back up.
+- ✅ One single k3s cluster, 4 nodes, static IPs. Self-recovers automatically from a reboot, a single node going down, or a full power-off/power-on cycle — no manual steps needed in any case.
+- ✅ Longhorn storage pooling the 3 workers' NVMe drives (2 replicas, tolerates any 1 worker dying).
+- ✅ Headlamp UI reachable from Windows for visual cluster state.
+- ⏳ No real apps deployed yet beyond `cloudflared` and a minimal placeholder app (see `docs/cloudflare-tunnel.md`).
+- ⚠️ **Action needed**: `control`'s OS (Ubuntu 25.04) has been EOL/unsupported since 2026-01-15 — no security patches. Should be reflashed to Ubuntu 24.04 LTS (matching the workers) or upgraded to a current release. Not yet done.
+- 🐛 Known minor issue: `metrics-server` readiness probe flaky on `control` (cosmetic, CPU/memory graphs may be incomplete).
+- 💤 Cluster is intentionally powered off between sessions (user doesn't want it running 24/7) — if SSH/kubectl aren't responding, check whether it's just off before assuming something's broken. See "Power management".
 
 ## Hardware & network
 
@@ -25,7 +23,7 @@ One single k3s cluster, 4 nodes, fully working as of 2026-10-25 (last full valid
 | worker | `worker2` | pi5-node-2.local | 192.168.0.237 | `88:a2:9e:04:42:e9` | 16GB | 64GB SD | 512GB NVMe, pooled into Longhorn | Ubuntu 24.04 LTS |
 | worker | `worker3` | pi5-node-3.local | 192.168.0.37 | `88:a2:9e:23:d6:7a` | 16GB | 64GB SD | 512GB NVMe, pooled into Longhorn | Ubuntu 24.04 LTS |
 
-All 4 IPs are DHCP reservations by MAC on the TP-Link router (Address Reservation page) — fixed, verified stable across reboots and node-down events.
+All 4 IPs are DHCP reservations by MAC on the TP-Link router (Address Reservation page) — fixed.
 
 ## How to connect
 
@@ -37,10 +35,11 @@ This Claude Code session has a project-level `.claude/settings.json` allowing `s
 
 ## Cluster architecture
 
-- **Control plane** (`control`): runs only the k3s server component. Tainted `node-role.kubernetes.io/control-plane:NoSchedule` — no workloads scheduled there, just cluster-brain duties. This needed no extra tolerations/config anywhere else; Longhorn, Headlamp, etc. all respected it automatically.
+- **Control plane** (`control`): runs only the k3s server component. Tainted `node-role.kubernetes.io/control-plane:NoSchedule` — no workloads scheduled there, just cluster-brain duties.
 - **Workers** (`worker1/2/3`): run all actual workloads. ~48GB RAM total available across them for apps (control's 8GB isn't usable for workloads).
-- **Storage**: Longhorn, pooling the 3 workers' NVMe drives at `/mnt/nvme/longhorn` (not the SD cards). `longhorn` is the **sole default StorageClass** (k3s's built-in `local-path` had its default annotation removed — two defaults is undefined behavior for PVCs without an explicit class). 2 replicas per volume by default — tolerates any 1 worker dying, ~500GB real usable capacity after Longhorn's ~140GB/node reserved safety margin (see "Storage math" below). Replica count is configurable per storage class/volume if something needs more or less redundancy later.
+- **Storage**: Longhorn, pooling the 3 workers' NVMe drives at `/mnt/nvme/longhorn` (not the SD cards). `longhorn` is the **sole default StorageClass**. k3s's built-in `local-path` addon is **disabled entirely** via `disable: [local-storage]` in `/etc/rancher/k3s/config.yaml` on `control` — just unsetting its default annotation doesn't stick, since k3s regenerates that addon's manifest from its own bundled defaults on every server restart; disabling the addon outright is the only durable fix. 2 replicas per volume by default — tolerates any 1 worker dying, ~500GB real usable capacity after Longhorn's ~140GB/node reserved safety margin (see "Storage math"). Replica count is configurable per storage class/volume if something needs more or less redundancy.
 - **Networking**: k3s defaults (Flannel CNI, Traefik ingress). Services exposed via NodePort so far (simple, no DNS/hosts-file setup needed). MetalLB is a likely future addition once there's a reason to want clean LAN IPs instead of NodePorts.
+- **Known limitation**: single control-plane node. If `control` goes down, there's no live orchestrator to reschedule anything — including CoreDNS, which runs on `control` — until it comes back. Workers and their already-running pods are unaffected, but internal DNS resolution (and anything depending on it, like the Cloudflare Tunnel reaching an app) breaks until `control` returns. A second control-plane node would fix this; not done.
 - **k3s version**: v1.36.5+k3s1. Kubeconfig on `control` at `/etc/rancher/k3s/k3s.yaml` (mode 644, readable without sudo).
 
 ### Storage math (why ~500GB, not more)
@@ -57,40 +56,31 @@ Troubleshooting Longhorn or Headlamp: `kubectl get pods -n <namespace> -o wide`,
 
 **`cloudflared`** (namespace `cloudflare-tunnel`) also runs in this cluster, connecting it to the public domain `bozov-lab.com` via a Cloudflare Tunnel — see `docs/cloudflare-tunnel.md` for full details, troubleshooting, and how to expose a new app.
 
-## Validated so far
+## Deploying apps — conventions
 
-- **Reboot resilience** (all 4 nodes, twice): k3s/k3s-agent systemd services come back with zero manual steps — survives something like a power outage.
-- **Node-failure resilience**: physically powered off `worker3` — the other 3 nodes kept working, `kubectl`/Headlamp stayed reachable throughout, Kubernetes correctly marked it `NotReady` and (after the ~5min grace period) reschedules its pods onto healthy workers. Stale "Terminating" pod references clear automatically once the node rejoins.
-- **Storage persistence**: PVC + pod via the `longhorn` StorageClass, wrote data, deleted and recreated the pod — data survived. Namespace cleaned up afterward (`longhorn-test`, no longer exists).
-- **Full power cycle**: all 4 shut down via SSH, physically restored by the user, cluster fully self-recovered with zero manual fixes (one transient CSI plugin crashloop during cold-boot self-resolved within ~30s — expected startup race, not a real issue).
-
-## Deploying apps — conventions going forward
-
-Nothing real deployed yet beyond infra/test workloads. Plan for when real apps go in:
 - **Manifests live in this repo** under `apps/<app-name>/*.yaml` (not yet created — create when the first app is added). Applied manually via `kubectl apply -f` for now; no GitOps (Flux/Argo) yet — revisit if that becomes worth the overhead.
-- **One namespace per app** is the default pattern (matches what we did for the Longhorn and tunnel tests).
+- **One namespace per app** is the default pattern.
 - Don't specify `storageClassName` unless you deliberately want something other than Longhorn's default resilient storage.
 - `.github/workflows/` is reserved for automation that shouldn't depend on the home lab's uptime/power (CI checks, image builds, scheduled jobs hitting external services) — not yet set up, nothing needs it yet.
 
 ## Power management
 
-User doesn't want the lab running 24/7 (it's physically in their home). Tested 2026-10-25:
-- **Shutdown**: fully automatable — `ssh <alias> "sudo poweroff"` on all 4 nodes (in parallel, no interdependency). Works reliably, confirmed via SSH unreachability afterward.
-- **Power-on**: **not automatable today**. Raspberry Pi 5 does not support Wake-on-LAN (confirmed via Raspberry Pi's own team stance — hardware limitation, not a config issue). Once powered off, a human must physically restore power (e.g. flip the power strip switch). No current workaround.
-- To close this gap: the user would need smart plugs (e.g. TP-Link Kasa, Shelly) between the wall outlet and each Pi's power supply (or one covering the strip feeding all 4) with a locally-reachable API — not yet purchased/set up. Revisit if the user wants true one-request power-on.
+User doesn't want the lab running 24/7 (it's physically in their home).
+- **Shutdown**: fully automatable — `ssh <alias> "sudo poweroff"` on all 4 nodes (in parallel, no interdependency).
+- **Power-on**: **not automatable**. Raspberry Pi 5 does not support Wake-on-LAN (hardware limitation, not a config issue). Once powered off, a human must physically restore power.
+- To close this gap: the user would need smart plugs (e.g. TP-Link Kasa, Shelly) between the wall outlet and each Pi's power supply (or one covering the strip feeding all 4) with a locally-reachable API — not yet purchased/set up.
 - Power-on order when restoring manually: `control` first (~30-60s to boot k3s server), then the 3 workers together. Not strictly required (k3s-agent retries connecting), but avoids unnecessary retry noise.
-- Full cycle verified 2026-10-25: cluster fully self-recovered with zero manual fixes after a complete power-off/power-on.
 
 ## Decisions log
 
-- OS version mismatch kept (`control` on 25.04, workers on 24.04 LTS) rather than reflashing/upgrading in place — not a blocker for k3s at the time. **25.04 has since reached EOL (2026-01-15)** — this is now a real action item, not just a future one.
+- OS version mismatch kept (`control` on 25.04, workers on 24.04 LTS) rather than reflashing/upgrading in place. **25.04 has since reached EOL (2026-01-15)** — real action item now, see "Status at a glance".
 - Repo kept public; user explicitly accepted the LAN-topology disclosure.
 - Claude Code has direct push access to this repo via Git Credential Manager (no token ever handled by Claude).
-- k3s install gotcha (informational, already resolved): on `control`'s 6.14 kernel, Raspberry Pi firmware injects `cgroup_disable=memory` into the boot cmdline; the classic `cgroup_enable=memory` fix didn't override it there (did work on workers' 6.8 kernel) — turned out to be a red herring, cgroup v2's controller was fine regardless. Real fix was just the reboot already needed for other reasons.
 
 ## Working agreement
 
-- User is a developer, new to Linux and Kubernetes specifically — explain steps in plain language, don't assume prior sysadmin/k8s knowledge. Conceptual "why does this work" questions are common and worth answering thoroughly (e.g. how StorageClass/CSI registration makes storage available cluster-wide, not per-app).
-- Verify claims against live cluster state before reporting status — don't assume event history in the UI reflects current state; check and distinguish historical/transient from live issues.
-- Prefer parallel operations over sequential when nodes are independent (e.g. rebooting multiple nodes with no interdependency) — sequential only matters once workloads/quorum are actually running.
-- Decide additional tooling (Ansible, GitOps, MetalLB, basic auth for Longhorn UI, etc.) only when an actual need arises — nothing beyond what's listed above is planned yet.
+- User is a developer, new to Linux and Kubernetes specifically — explain steps in plain language, don't assume prior sysadmin/k8s knowledge. Conceptual "why does this work" questions are common and worth answering thoroughly.
+- Verify claims against live cluster state before reporting status — don't assume event history in a UI reflects current state; check and distinguish historical/transient from live issues.
+- Prefer parallel operations over sequential when nodes are independent — sequential only matters once workloads/quorum are actually running.
+- **Keep this doc lean**: record durable current-state facts (what's true now, how things are configured, how to operate them) — not a log of what was tested and when. If something needs re-verifying, re-check live state rather than trusting a stale historical note.
+- Decide additional tooling (Ansible, GitOps, MetalLB, basic auth for Longhorn UI, etc.) only when an actual need arises.
