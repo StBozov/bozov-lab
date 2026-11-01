@@ -65,7 +65,7 @@ k3s v1.36.5+k3s1 on every node. Beyond the manifests in `apps/`, a rebuilt clust
 |---|---|---|---|---|
 | `longhorn` | `longhorn-system` | `longhorn` 1.13.0 | `https://charts.longhorn.io` | `defaultSettings.defaultDataPath: /mnt/nvme/longhorn`, `defaultSettings.defaultReplicaCount: 2`, `persistence.defaultClassReplicaCount: 2` |
 | `my-headlamp` | `kube-system` | `headlamp` 0.46.0 | `https://kubernetes-sigs.github.io/headlamp/` | none |
-| `traefik`, `traefik-crd` | `kube-system` | 40.1.5 | bundled with k3s | none of ours: k3s generates them, and no `HelmChartConfig` exists |
+| `traefik`, `traefik-crd` | `kube-system` | 40.1.5 | bundled with k3s | k3s generates the base values. Ours are in `apps/traefik/helmchartconfig.yaml`: 2 replicas on different nodes, requests, a PodDisruptionBudget |
 
 - `/etc/rancher/k3s/config.yaml` on `control` contains only `disable: [local-storage]`.
 - The Longhorn data path needs the NVMe drives mounted at `/mnt/nvme` on each worker first (see Storage above).
@@ -74,7 +74,7 @@ k3s v1.36.5+k3s1 on every node. Beyond the manifests in `apps/`, a rebuilt clust
 
 ## Deploying apps
 
-Adding or changing an app (namespace, quota, hostnames, storage, network policy, GitOps, and avoiding collisions with other apps) is covered by the skill `lab-deploy-app` and its registry. Use that instead of working from this file. App manifests are delivered by Flux (see "What's installed"); platform manifests under `apps/` (such as `apps/crossly/`, `apps/flux-system/`, `apps/cloudflare-tunnel/`, `apps/tunnel-test/`) are applied by hand with `kubectl apply`.
+Adding or changing an app (namespace, quota, hostnames, storage, network policy, GitOps, and avoiding collisions with other apps) is covered by the skill `lab-deploy-app` and its registry. Use that instead of working from this file. App manifests are delivered by Flux (see "What's installed"); platform manifests under `apps/` (such as `apps/crossly/`, `apps/flux-system/`, `apps/traefik/`, `apps/cloudflare-tunnel/`, `apps/tunnel-test/`) are applied by hand with `kubectl apply`.
 
 - `.github/workflows/` is reserved for automation that shouldn't depend on the home lab's uptime/power (CI checks, image builds, scheduled jobs hitting external services) — not yet set up, nothing needs it yet.
 
