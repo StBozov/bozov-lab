@@ -1,6 +1,6 @@
 ---
 name: app-crossly
-description: How Crossly is wired on the bozov-lab cluster - namespace and its fencing, the UI, public hostname crossly.bozov-lab.com and its Cloudflare route and Flux sync from the product repository (all applied), secrets and image automation (planned). Use for any change to Crossly on the lab cluster or to find out what of Crossly is deployed there. The product itself (services, images, settings, delivery plan) is documented in the Crossly repository, not here.
+description: How Crossly is wired on the bozov-lab cluster - namespace and its fencing, the UI, public hostname crossly.bozov-lab.com and its Cloudflare route and Flux sync from the product repository (all applied), secrets and following the product's published manifest artifact (planned). Use for any change to Crossly on the lab cluster or to find out what of Crossly is deployed there. The product itself (services, images, settings, delivery plan) is documented in the Crossly repository, not here.
 ---
 
 # Crossly on the lab
@@ -9,7 +9,7 @@ Crossly is an open-source cross-stitch pattern editor. **Product knowledge lives
 
 ## Wiring
 
-The namespace, quota, limit range, network policies, the Flux sync, the UI and the Cloudflare route are applied. Image automation is planned. The registry in `lab-deploy-app` is the single place for Crossly's quota; do not repeat it here.
+The namespace, quota, limit range, network policies, the Flux sync, the UI and the Cloudflare route are applied. Following the product's published manifest artifact instead of the `main` branch is planned. The registry in `lab-deploy-app` is the single place for Crossly's quota; do not repeat it here.
 
 | | |
 |---|---|
@@ -18,7 +18,7 @@ The namespace, quota, limit range, network policies, the Flux sync, the UI and t
 | Cloudflare route | `crossly.bozov-lab.com` to the ingress controller, `http://traefik.kube-system.svc.cluster.local:80`; the product's Ingress then matches the hostname |
 | Ingress host | The product manifests default to `crossly.localhost`. The lab overrides it to `crossly.bozov-lab.com` with a patch in the Flux Kustomization (`apps/crossly/flux-kustomization.yaml`) |
 | Images | `ghcr.io/textyly/crossly-<service>`, public, tagged `main-<short-sha>-<unix-timestamp>` (these exist already) |
-| Flux | `GitRepository` `crossly` follows `textyly/crossly` branch `main` every 5 minutes, anonymously (public repository, no credentials). `Kustomization` `crossly` applies `deploy/k8s` as ServiceAccount `flux-apply`, with prune and health wait on, so a merge to `main` goes live within minutes. Image automation (planned) will record new tags in `apps/crossly/` in this repository |
+| Flux | `GitRepository` `crossly` follows `textyly/crossly` branch `main` every 5 minutes, anonymously (public repository, no credentials). `Kustomization` `crossly` applies `deploy/k8s` as ServiceAccount `flux-apply`, with prune and health wait on, so a merge to `main` goes live within minutes. Planned: replace the `GitRepository` with an `OCIRepository` that follows the manifest artifact the product's CI publishes with its images. That needs no credential and no write access to any repository, and `source-controller` already handles it |
 | Secrets | Created with `kubectl` in `crossly`. Names are listed here once they exist (none yet) |
 
 ## Where things live
@@ -32,7 +32,7 @@ The product's delivery slices (S0 to S4) are defined in the Crossly repository. 
 
 | Slice | On the lab |
 |---|---|
-| S0 | The `crossly` namespace with quota, limit range and network policies (`apps/crossly/`); Flux; image automation; the Cloudflare route to Traefik; docs |
+| S0 | The `crossly` namespace with quota, limit range and network policies (`apps/crossly/`); Flux; switch the source to the published manifest artifact; the Cloudflare route to Traefik; docs |
 | S1 | A Postgres volume sized within the quota; secrets created with `kubectl`; network policies for the real flows |
 | S2 | First check that the official MongoDB image runs on the Pi 5's arm64 CPU (it needs a recent ARM core); then the Mongo volume |
 | S3 | Google OAuth credentials and consent screen. No email is set up for the domain, so use an existing mailbox for the support and developer contacts |
