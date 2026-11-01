@@ -43,7 +43,7 @@ Because the home IP is never referenced anywhere in this chain, **a changing pub
 
 **`cloudflared` deployment**: runs in-cluster, namespace `cloudflare-tunnel`.
 - Tunnel token stored as Kubernetes Secret `cloudflared-tunnel-token` (key `token`) — generated from the dashboard's install-command screen, **never committed to this repo**.
-- Plain `Deployment` (image `cloudflare/cloudflared:latest`, args `tunnel --no-autoupdate run`, token injected via `TUNNEL_TOKEN` env var from the Secret) — not the official Helm chart, a minimal manifest is simpler and sufficient.
+- Plain `Deployment` (2 replicas, image `cloudflare/cloudflared` pinned by version tag and digest in `apps/cloudflare-tunnel/deployment.yaml`, args `tunnel --no-autoupdate run`, token injected via `TUNNEL_TOKEN` env var from the Secret) — not the official Helm chart, a minimal manifest is simpler and sufficient.
 - **2 replicas with pod anti-affinity** (`topologyKey: kubernetes.io/hostname`, preferred not required), spread across different workers — so a single node dying doesn't take the tunnel down with it.
 
 **Routing** (how a hostname gets mapped to an app): since `cloudflared` runs in token mode, routes are managed entirely from the Cloudflare dashboard, not a local config file — no redeploy needed to add/change a route.
