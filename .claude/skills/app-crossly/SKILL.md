@@ -50,4 +50,4 @@ ssh control "kubectl -n crossly get pods,svc,ingress,resourcequota"
 curl -I https://crossly.bozov-lab.com/
 ```
 
-The cluster is powered off between sessions; if it does not answer, see `docs/cluster.md`.
+The cluster is powered off between sessions; if it does not answer, the state above is unverified (see `docs/cluster.md`).
