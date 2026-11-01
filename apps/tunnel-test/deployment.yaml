@@ -16,6 +16,10 @@ spec:
       containers:
         - name: nginx
           image: nginx:alpine
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
           volumeMounts:
             - name: page
               mountPath: /usr/share/nginx/html
