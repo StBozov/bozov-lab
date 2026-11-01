@@ -9,5 +9,5 @@ resources:
   - serviceaccount.yaml
   - role.yaml
   - rolebinding.yaml
-  - gitrepository.yaml
+  - ocirepository.yaml
   - flux-kustomization.yaml

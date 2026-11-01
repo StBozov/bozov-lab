@@ -1,12 +1,12 @@
 apiVersion: source.toolkit.fluxcd.io/v1
-kind: GitRepository
+kind: OCIRepository
 metadata:
-  name: crossly
+  name: crossly-ui
   namespace: crossly
   labels:
     app.kubernetes.io/part-of: crossly
 spec:
-  interval: 5m
-  url: https://github.com/textyly/crossly
+  interval: 2m
+  url: oci://ghcr.io/textyly/crossly-ui-manifests
   ref:
-    branch: main
+    tag: main

@@ -9,9 +9,9 @@ spec:
   interval: 5m
   timeout: 3m
   sourceRef:
-    kind: GitRepository
-    name: crossly
-  path: ./deploy/k8s
+    kind: OCIRepository
+    name: crossly-ui
+  path: ./
   serviceAccountName: flux-apply
   prune: true
   wait: true
