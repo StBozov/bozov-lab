@@ -5,7 +5,8 @@ How we'll expose cluster services to the public internet, eventually under a rea
 ## Status at a glance
 
 - ✅ **Mechanism validated end-to-end** (2026-11-01) via a Cloudflare Quick Tunnel — no domain, no account needed for this test. A disposable test app + `cloudflared` pod inside the cluster produced a public `*.trycloudflare.com` URL that served the app's page. Confirms the whole chain works: outbound tunnel from inside the cluster → Cloudflare edge → back down to the app.
-- ⏳ **Not yet done**: no domain purchased, no Cloudflare account/zone set up, no named (persistent) tunnel, no production `cloudflared` deployment. Nothing is currently exposed to the internet.
+- ✅ **Domain purchased**: `bozov-lab.com`, via Cloudflare Registrar, 2026-11-01 (WHOIS Privacy, DNSSEC, Email Forwarding included). Already on Cloudflare's own DNS, no nameserver-pointing step needed.
+- ⏳ **Not yet done**: no named (persistent) tunnel created, no production `cloudflared` deployment, no hostname mapped. Nothing is currently exposed to the internet under this domain.
 - 🧹 The test namespace (`tunnel-test`: a trivial nginx "hello" app + a one-off `cloudflared-quicktest` pod) may still exist — clean up with `kubectl delete namespace tunnel-test` once no longer needed for reference.
 
 ## Why Cloudflare Tunnel (not a router port-forward)
@@ -38,13 +39,19 @@ Because the home IP is never referenced anywhere in this chain, **a changing pub
 
 Quick Tunnel limits (fine for this test, not for production): URL is random and temporary — dies when the pod stops; 200 in-flight request cap; no persistent/custom hostname; no uptime guarantee. This is Cloudflare's own stated intent for Quick Tunnels — testing/dev only.
 
-## Plan for the real (production) setup, once a domain is bought
+## Account
 
-1. **Buy a domain**, point its nameservers at Cloudflare (or buy directly through Cloudflare).
-2. **Create a free Cloudflare account**, add the domain as a zone.
-3. **Create a named Tunnel** in the Cloudflare dashboard (Zero Trust → Networks → Tunnels) — generates a tunnel ID + credentials token (persistent, unlike Quick Tunnels).
-4. **Deploy `cloudflared` properly** as a real Deployment in the cluster (not a one-off `kubectl run` pod like the test) — official Helm chart is the likely route. The tunnel token goes in as a Kubernetes Secret — **never commit it to this repo**.
-5. **Map each public hostname to an internal Service** in the Cloudflare dashboard (e.g. `app.yourdomain.com` → `http://<service>.<namespace>.svc.cluster.local:<port>`). Cloudflare auto-manages the DNS record.
+- **Domain**: `bozov-lab.com`, registered via Cloudflare Registrar 2026-11-01.
+- **Cloudflare account**: logged in via Google OAuth, `st.bozov@gmail.com`.
+- **Dashboard**: [dash.cloudflare.com](https://dash.cloudflare.com/) — domain registration details and DNS records are managed from the domain's menu there.
+
+## Plan for the real (production) setup
+
+1. ✅ **Buy a domain** — `bozov-lab.com`, done.
+2. ✅ **Cloudflare account set up**, domain is already a zone there (automatic, since it was bought through Cloudflare directly).
+3. **Create a named Tunnel** in the Cloudflare dashboard (Zero Trust → Networks → Tunnels) — generates a tunnel ID + credentials token (persistent, unlike Quick Tunnels). Not yet done.
+4. **Deploy `cloudflared` properly** as a real Deployment in the cluster (not a one-off `kubectl run` pod like the test) — official Helm chart is the likely route. The tunnel token goes in as a Kubernetes Secret — **never commit it to this repo**. Not yet done.
+5. **Map each public hostname to an internal Service** in the Cloudflare dashboard (e.g. `app.bozov-lab.com` → `http://<service>.<namespace>.svc.cluster.local:<port>`). Cloudflare auto-manages the DNS record. Not yet done.
 6. Repeat step 5 per app/service that needs public exposure — one tunnel can serve multiple hostnames.
 
-Nothing in this plan is done yet — revisit once there's a domain and an actual app worth exposing.
+Steps 3-6 are next up, once there's an actual app worth exposing.
