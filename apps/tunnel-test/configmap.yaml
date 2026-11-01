@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hello-page
+  namespace: tunnel-test
+data:
+  index.html: |
+    <html><body style="font-family:sans-serif;text-align:center;margin-top:100px">
+    <h1>Hello from bozov-lab!</h1>
+    <p>Reached via Cloudflare Tunnel, served from the k3s cluster.</p>
+    </body></html>

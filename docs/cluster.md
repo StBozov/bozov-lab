@@ -55,11 +55,26 @@ Troubleshooting Longhorn or Headlamp: `kubectl get pods -n <namespace> -o wide`,
 
 **Flux** (GitOps, v2.10.0) — namespace `flux-system`, only `source-controller` and `kustomize-controller`. Manifests in `apps/flux-system/`: `flux-install.yaml` is generated (`flux install --export --components=source-controller,kustomize-controller`) and about 155 KB, so **never read it**; `kustomization.yaml` next to it adds `--default-service-account=flux-apply`, so a Kustomization that names no ServiceAccount fails instead of running as cluster-admin. Apply and upgrade with `kubectl apply --server-side` (the CRDs are too large for a plain apply). Per-app wiring is in the skill `lab-deploy-app`.
 
-**`cloudflared`** (namespace `cloudflare-tunnel`) also runs in this cluster, connecting it to the public domain `bozov-lab.com` via a Cloudflare Tunnel — see `docs/cloudflare-tunnel.md` for full details, troubleshooting, and how to expose a new app.
+**`cloudflared`** (namespace `cloudflare-tunnel`) also runs in this cluster, connecting it to the public domain `bozov-lab.com` via a Cloudflare Tunnel — see `docs/cloudflare-tunnel.md` for full details, troubleshooting, and how to expose a new app. Manifests: `apps/cloudflare-tunnel/` and the placeholder `apps/tunnel-test/`.
+
+### Rebuilding from the repo
+
+k3s v1.36.5+k3s1 on every node. Beyond the manifests in `apps/`, a rebuilt cluster needs the following. The Helm releases are not in the repo, so these versions and values are the record.
+
+| Release | Namespace | Chart | Source | User-supplied values |
+|---|---|---|---|---|
+| `longhorn` | `longhorn-system` | `longhorn` 1.13.0 | `https://charts.longhorn.io` | `defaultSettings.defaultDataPath: /mnt/nvme/longhorn`, `defaultSettings.defaultReplicaCount: 2`, `persistence.defaultClassReplicaCount: 2` |
+| `my-headlamp` | `kube-system` | `headlamp` 0.46.0 | `https://kubernetes-sigs.github.io/headlamp/` | none |
+| `traefik`, `traefik-crd` | `kube-system` | 40.1.5 | bundled with k3s | none of ours: k3s generates them, and no `HelmChartConfig` exists |
+
+- `/etc/rancher/k3s/config.yaml` on `control` contains only `disable: [local-storage]`.
+- The Longhorn data path needs the NVMe drives mounted at `/mnt/nvme` on each worker first (see Storage above).
+- Headlamp's own values are empty, yet its Service is a NodePort on 30519, so the NodePort was set outside Helm. After any `helm upgrade my-headlamp`, check the Service and set the NodePort again if it reverted.
+- The tunnel token is the Secret `cloudflared-tunnel-token` (key `token`) in `cloudflare-tunnel`, created with `kubectl` and never committed. Recreate it from the Cloudflare dashboard (see `docs/cloudflare-tunnel.md`).
 
 ## Deploying apps
 
-Adding or changing an app (namespace, quota, hostnames, storage, network policy, GitOps, and avoiding collisions with other apps) is covered by the skill `lab-deploy-app` and its registry. Use that instead of working from this file. App manifests are delivered by Flux (see "What's installed"); platform manifests under `apps/` (such as `apps/crossly/`, `apps/flux-system/`) are applied by hand with `kubectl apply`.
+Adding or changing an app (namespace, quota, hostnames, storage, network policy, GitOps, and avoiding collisions with other apps) is covered by the skill `lab-deploy-app` and its registry. Use that instead of working from this file. App manifests are delivered by Flux (see "What's installed"); platform manifests under `apps/` (such as `apps/crossly/`, `apps/flux-system/`, `apps/cloudflare-tunnel/`, `apps/tunnel-test/`) are applied by hand with `kubectl apply`.
 
 - `.github/workflows/` is reserved for automation that shouldn't depend on the home lab's uptime/power (CI checks, image builds, scheduled jobs hitting external services) — not yet set up, nothing needs it yet.
 
