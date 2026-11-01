@@ -15,6 +15,8 @@ Detailed, topic-focused docs live under `docs/`. Read the relevant one before wo
 
 More skill docs get added here as the lab grows (e.g. a future "deploying apps" or "GitOps" doc, if those become real).
 
+**Git workflow**: this is a personal repository (`StBozov/bozov-lab` on GitHub, default branch `main`), so commit and push **straight to `main`** — no branches, no pull requests. Never commit or push without first showing the user what will go in and getting an explicit "yes" for that commit; this applies to manifests and scripts as well as docs. Keep the existing git identity (`stbozov`).
+
 **Review-before-push workflow**: skill docs must be kept up to date on every major change. Before committing/pushing an update to any skill doc (this file or anything under `docs/`), show the user the proposed change and wait for explicit approval — only commit and push after they say yes. Minor in-progress edits don't need to round-trip for approval each time, but the final version going to git does.
 
 **Keep skill docs lean**: every skill doc should stay as small as token budget allows *without* dropping anything that's actually useful — the test is "is this a durable fact about current state/config/how-to," not "is this interesting." Record what's true now (e.g. "`test.bozov-lab.com` is live and routes to X") and how things are configured/operated — never a log of what was tested, when, or how it was verified (e.g. not "we rebooted the cluster on 2026-11-01 and it recovered in 16 seconds"). If a doc accumulates that kind of history, strip it on the next major edit rather than letting it grow. If something needs re-confirming, re-check live state instead of trusting a stale note.
