@@ -15,6 +15,8 @@ Detailed, topic-focused docs live under `docs/`. Read the relevant one before wo
 
 More skill docs get added here as the lab grows (e.g. a future "deploying apps" or "GitOps" doc, if those become real).
 
+**Review-before-push workflow**: skill docs must be kept up to date on every major change. Before committing/pushing an update to any skill doc (this file or anything under `docs/`), show the user the proposed change and wait for explicit approval — only commit and push after they say yes. Minor in-progress edits don't need to round-trip for approval each time, but the final version going to git does.
+
 ## Always-relevant reminders
 
 - 💤 The cluster is intentionally powered off between sessions (home lab, not meant to run 24/7) — if SSH/kubectl aren't responding, check `docs/cluster.md` → Power management before assuming something's broken.
