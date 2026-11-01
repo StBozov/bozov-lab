@@ -28,7 +28,7 @@ Several apps share this cluster. These rules keep them apart. Before choosing a 
 2. Add the app's row with its intended quota, and check that the budget still fits.
 3. Create `apps/<app>/` with `namespace.yaml` (label `app.kubernetes.io/part-of: <app>`), `resourcequota.yaml`, `limitrange.yaml` and `networkpolicy.yaml`, then the app's own manifests or Flux wiring.
 4. Show the rendered manifests and a server-side dry run (`kubectl apply --dry-run=server`) before applying anything live.
-5. Apply, confirm the pods are Ready, and check the namespace events for warnings. Then prove the network policy really enforces: a pod that is not allowed must fail to reach the app, since a policy that is not enforced looks the same as one that is.
+5. Apply, confirm the pods are Ready, and check the namespace events for warnings. Then prove the network policy really enforces: a pod that is not allowed must fail to reach the app, since a policy that is not enforced looks the same as one that is. Test with pods that have been running for at least 20 seconds, because the policy controller programs a new pod's firewall a moment after it starts, and until then it can reach anything. Include a control in a namespace without policies, so a blocked request means the policy and not a broken network.
 6. Add the Cloudflare route, and verify it with `curl -I https://<hostname>/`.
 7. Write `.claude/skills/app-<app>/SKILL.md` and add a row for it to the router in `CLAUDE.md`.
 8. Commit following the git workflow in `CLAUDE.md`.

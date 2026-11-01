@@ -1,19 +1,19 @@
 ---
 name: app-crossly
-description: The planned wiring of Crossly on the bozov-lab cluster - namespace, public hostname crossly.bozov-lab.com, Cloudflare route, secrets, Flux path and image automation (nothing is applied yet). Use for any change to Crossly on the lab cluster or to find out what of Crossly is deployed there. The product itself (services, images, settings, delivery plan) is documented in the Crossly repository, not here.
+description: How Crossly is wired on the bozov-lab cluster - namespace and its fencing (applied), public hostname crossly.bozov-lab.com, Cloudflare route, secrets, Flux path and image automation (planned). Use for any change to Crossly on the lab cluster or to find out what of Crossly is deployed there. The product itself (services, images, settings, delivery plan) is documented in the Crossly repository, not here.
 ---
 
 # Crossly on the lab
 
 Crossly is an open-source cross-stitch pattern editor. **Product knowledge lives in the Crossly hub repository** (GitHub `textyly/crossly`, local clone `C:\dev\textyly\crossly`): read its skill `.claude/skills/crossly-delivery/SKILL.md` and its manifests in `deploy/k8s/`. This skill covers only what is specific to this cluster. Do not copy product facts here. For rules shared by all apps (quota, naming, checklist), use `lab-deploy-app`.
 
-## Planned wiring (nothing is applied yet)
+## Wiring
 
-All of this is the intended setup. The registry in `lab-deploy-app` is the single place for Crossly's quota; do not repeat it here.
+The namespace, quota, limit range and network policies are applied. Everything else below is planned. The registry in `lab-deploy-app` is the single place for Crossly's quota; do not repeat it here.
 
 | | |
 |---|---|
-| Namespace | `crossly`, to be created from `apps/crossly/` in this repository (the product manifests do not create it). Pod Security enforces `baseline` and only warns and audits `restricted`: the UI meets `restricted`, but the database images will not |
+| Namespace | `crossly`, applied by hand from `apps/crossly/` in this repository (the product manifests do not create it). Pod Security enforces `baseline` and only warns and audits `restricted`: the UI meets `restricted`, but the database images will not |
 | Public address | `https://crossly.bozov-lab.com`. No email is set up for this domain, so wherever a contact address is required use an existing mailbox |
 | Cloudflare route | `crossly.bozov-lab.com` to the ingress controller, `http://traefik.kube-system.svc.cluster.local:80`; the product's Ingress then matches the hostname |
 | Ingress host | The product manifests default to `crossly.localhost`. The lab will override it to `crossly.bozov-lab.com` with a patch in its Flux Kustomization |
@@ -41,7 +41,7 @@ The dependency runs one way: this repository may refer to Crossly, but the Cross
 
 ## State
 
-Nothing is deployed in `crossly` yet. Progress by slice is tracked in the Crossly repository (`PLAN.md`) and on the project board `textyly/projects/1`, not here.
+The `crossly` namespace and its quota, limit range and network policies are applied and tested; no workload runs in it yet. Progress by slice is tracked in the Crossly repository (`PLAN.md`) and on the project board `textyly/projects/1`, not here.
 
 ## Checking
 
