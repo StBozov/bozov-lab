@@ -21,13 +21,13 @@ One row per app. Check it before choosing a name, hostname, port or quota, and c
 
 ## Apps
 
-This table is the single source for every app's quota. An app's own skill points here instead of repeating the numbers. Status `live` means it exists on the cluster now; `planned` means the allocation is reserved but nothing is applied yet; `namespace live` means the namespace and its fencing exist but no workload runs.
+This table is the single source for every app's quota. An app's own skill points here instead of repeating the numbers. Status `live` means it exists on the cluster now; `planned` means the allocation is reserved but nothing is applied yet.
 
 | App | Status | Namespace | Hostnames | NodePorts | CPU requests / limits | Memory requests / limits | Storage | Flux path | Skill |
 |---|---|---|---|---|---|---|---|---|---|
 | Platform | live | `longhorn-system`, `kube-system`, `cloudflare-tunnel` | none (admin UIs on NodePorts) | 30219 (Longhorn), 30519 (Headlamp) | reserve 2 | reserve 6 GiB | n/a | n/a | `docs/cluster.md` |
 | Tunnel test page | live | `tunnel-test` | `test.bozov-lab.com` | none | none set | none set | none | n/a | `docs/cloudflare-tunnel.md` |
-| Crossly | namespace live | `crossly` | `crossly.bozov-lab.com` | none | 2 / 4 | 4 GiB / 8 GiB | 20 GiB in at most 6 PVCs; at most 30 pods | `apps/crossly` (planned) | `app-crossly` |
+| Crossly | live | `crossly` | `crossly.bozov-lab.com` | none | 2 / 4 | 4 GiB / 8 GiB | 20 GiB in at most 6 PVCs; at most 30 pods | `apps/crossly` (planned) | `app-crossly` |
 | **Unallocated** | | | | | about 3.8 | about 20 GiB | about 370 GB | | |
 
 ## Adding a row
