@@ -56,11 +56,10 @@ Troubleshooting Longhorn or Headlamp: `kubectl get pods -n <namespace> -o wide`,
 
 **`cloudflared`** (namespace `cloudflare-tunnel`) also runs in this cluster, connecting it to the public domain `bozov-lab.com` via a Cloudflare Tunnel — see `docs/cloudflare-tunnel.md` for full details, troubleshooting, and how to expose a new app.
 
-## Deploying apps — conventions
+## Deploying apps
 
-- **Manifests live in this repo** under `apps/<app-name>/*.yaml` (not yet created — create when the first app is added). Applied manually via `kubectl apply -f` for now; no GitOps (Flux/Argo) yet — revisit if that becomes worth the overhead.
-- **One namespace per app** is the default pattern.
-- Don't specify `storageClassName` unless you deliberately want something other than Longhorn's default resilient storage.
+Adding or changing an app (namespace, quota, hostnames, storage, network policy, GitOps, and avoiding collisions with other apps) is covered by the skill `lab-deploy-app` and its registry. Use that instead of working from this file. Manifests are applied by hand with `kubectl apply` for now; GitOps (Flux) is planned, starting with Crossly.
+
 - `.github/workflows/` is reserved for automation that shouldn't depend on the home lab's uptime/power (CI checks, image builds, scheduled jobs hitting external services) — not yet set up, nothing needs it yet.
 
 ## Power management

@@ -75,62 +75,20 @@ Deeper diagnosis when a route isn't healthy:
 3. `kubectl get pods -n <app-namespace> -o wide` — is the actual app running?
 4. `kubectl logs -n cloudflare-tunnel -l app=cloudflared --tail=30` — connection status and errors from `cloudflared`'s own perspective.
 
-## Walkthrough: deploying a new app and exposing it publicly
+## Walkthrough: exposing an app publicly
 
-Two independent halves — deploying the app is a normal Kubernetes task, exposing it is just adding one route. Neither touches `cloudflared` itself.
+Deploying the app itself (namespace, quota, network policy, Service and Ingress, storage) is covered by the skill `lab-deploy-app`. Exposing it is adding one route; neither touches `cloudflared`.
 
-### Part 1: deploy the app
-
-1. Create a folder `apps/<app-name>/` in this repo (see `docs/cluster.md` → "Deploying apps") with its manifests. Minimal example — a Deployment + a ClusterIP Service (the thing a route will point at):
-
-   ```yaml
-   # apps/<app-name>/deployment.yaml
-   apiVersion: apps/v1
-   kind: Deployment
-   metadata:
-     name: <app-name>
-     namespace: <app-name>
-   spec:
-     replicas: 1
-     selector:
-       matchLabels: {app: <app-name>}
-     template:
-       metadata:
-         labels: {app: <app-name>}
-       spec:
-         containers:
-         - name: <app-name>
-           image: <your-image>
-           ports:
-           - containerPort: <app-port>
-   ---
-   apiVersion: v1
-   kind: Service
-   metadata:
-     name: <app-name>
-     namespace: <app-name>
-   spec:
-     selector: {app: <app-name>}
-     ports:
-     - port: <app-port>
-       targetPort: <app-port>
-   ```
-
-   Add a `PersistentVolumeClaim` (and a `volumeMounts`/`volumes` pair) if it needs storage — no `storageClassName` needed, `longhorn` is the cluster default.
-
-2. Create the namespace and apply: `kubectl create namespace <app-name>; kubectl apply -f apps/<app-name>/`.
-3. Confirm it's running: `kubectl get pods -n <app-name>`.
-
-### Part 2: add the route
+### Add the route
 
 1. Cloudflare dashboard → Networking → Tunnels → `bozov-lab` → **Routes** tab → **+ Add route** → **Published application**.
-2. Subdomain: whatever you want (e.g. `<app-name>`, giving `<app-name>.bozov-lab.com`). Domain: `bozov-lab.com`.
-3. Service type `HTTP`, Service URL `http://<app-name>.<app-name>.svc.cluster.local:<app-port>` — remember the `http://` prefix.
+2. Subdomain: the app's name (giving `<app>.bozov-lab.com`). Domain: `bozov-lab.com`.
+3. Service type `HTTP`. Service URL: the standard target is the ingress controller, `http://traefik.kube-system.svc.cluster.local:80`, and the app's Ingress matches the hostname. Keep the `http://` prefix. Crossly will be the first app to use this; the existing `test` route predates it and points straight at its Service.
 4. Save.
 
-### Part 3: verify
+### Verify
 
-`curl -s -o /dev/null -w '%{http_code}\n' https://<app-name>.bozov-lab.com/` — expect `200`.
+`curl -s -o /dev/null -w '%{http_code}\n' https://<app>.bozov-lab.com/` — expect `200`.
 
 **Troubleshooting `cloudflared` in-cluster**: `kubectl get pods -n cloudflare-tunnel -o wide` (is it Running, which node), `kubectl logs -n cloudflare-tunnel -l app=cloudflared` (connection status, errors), `kubectl rollout restart deployment cloudflared -n cloudflare-tunnel` (force a fresh reconnect if the tunnel ever shows unhealthy in the dashboard). Remember `control` is tainted, so like everything else it'll only ever schedule onto a worker.
 
