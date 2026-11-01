@@ -32,7 +32,6 @@ The product's delivery slices (S0 to S4) are defined in the Crossly repository. 
 
 | Slice | On the lab |
 |---|---|
-| S0 | The `crossly` namespace with quota, limit range and network policies (`apps/crossly/`); Flux following the published manifest artifact; the Cloudflare route to Traefik; docs |
 | S1 | A Postgres volume sized within the quota; secrets created with `kubectl`; network policies for the real flows |
 | S2 | First check that the official MongoDB image runs on the Pi 5's arm64 CPU (it needs a recent ARM core); then the Mongo volume |
 | S3 | Google OAuth credentials and consent screen. No email is set up for the domain, so use an existing mailbox for the support and developer contacts |

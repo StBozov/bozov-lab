@@ -16,8 +16,8 @@ One row per app. Check it before choosing a name, hostname, port or quota, and c
 
 | | CPU | Memory | Storage |
 |---|---|---|---|
-| Platform reserve (Longhorn, Traefik, Headlamp, cloudflared, DNS) | 2 | 6 GiB | n/a |
-| Assignable to apps (65% of total, minus the reserve) | about 5.8 | about 24 GiB | about 390 GB |
+| Platform reserve (Longhorn, Traefik, Headlamp, cloudflared, DNS) | 2.5 | 6 GiB | n/a |
+| Assignable to apps (65% of total, minus the reserve) | about 5.3 | about 24 GiB | about 390 GB |
 
 ## Apps
 
@@ -25,10 +25,10 @@ This table is the single source for every app's quota. An app's own skill points
 
 | App | Status | Namespace | Hostnames | NodePorts | CPU requests / limits | Memory requests / limits | Storage | Flux path | Skill |
 |---|---|---|---|---|---|---|---|---|---|
-| Platform | live | `longhorn-system`, `kube-system`, `cloudflare-tunnel`, `flux-system` | none (admin UIs on NodePorts) | 30219 (Longhorn), 30519 (Headlamp) | reserve 2 | reserve 6 GiB | n/a | n/a | `docs/cluster.md` |
+| Platform | live | `longhorn-system`, `kube-system`, `cloudflare-tunnel`, `flux-system` | none (admin UIs on NodePorts) | 30219 (Longhorn), 30519 (Headlamp) | reserve 2.5 | reserve 6 GiB | n/a | n/a | `docs/cluster.md` |
 | Tunnel test page | live | `tunnel-test` | `test.bozov-lab.com` | none | none set | none set | none | n/a | `docs/cloudflare-tunnel.md` |
 | Crossly | live | `crossly` | `crossly.bozov-lab.com` | none | 2 / 4 | 4 GiB / 8 GiB | 20 GiB in at most 6 PVCs; at most 30 pods | `apps/crossly` | `app-crossly` |
-| **Unallocated** | | | | | about 3.8 | about 20 GiB | about 370 GB | | |
+| **Unallocated** | | | | | about 3.3 | about 20 GiB | about 370 GB | | |
 
 ## Adding a row
 

@@ -6,7 +6,7 @@ How cluster services get exposed to the public internet. For the cluster itself,
 
 - ✅ **Domain**: `bozov-lab.com`, registered via Cloudflare Registrar (WHOIS Privacy, DNSSEC, Email Forwarding included). On Cloudflare's own DNS.
 - ✅ **Tunnel live and resilient**: named tunnel `bozov-lab`, `cloudflared` running 2 replicas in-cluster (anti-affinity across different workers, so one worker dying doesn't take the public path down). Survives a full power-cycle of the cluster automatically, no manual steps.
-- ✅ **One live route**: `test.bozov-lab.com` → a minimal `nginx` placeholder app (namespace `tunnel-test`, Deployment/Service both named `hello`). Kept intentionally as a standing proof-of-life for the tunnel — don't delete it without replacing its route. Follow "Walkthrough" below to add a real app's route alongside it.
+- ✅ **Two live routes**: `crossly.bozov-lab.com` → Traefik (see skill `app-crossly`), and `test.bozov-lab.com` → a minimal `nginx` placeholder app (namespace `tunnel-test`, Deployment/Service both named `hello`). The test route is kept intentionally as a standing proof-of-life for the tunnel — don't delete it without replacing its route. Follow "Walkthrough" below to add a real app's route alongside them.
 
 ## Why Cloudflare Tunnel (not a router port-forward)
 

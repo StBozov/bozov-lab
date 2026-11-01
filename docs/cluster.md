@@ -9,7 +9,6 @@ Everything about the 4-node Raspberry Pi 5 k3s cluster itself — hardware, acce
 - ✅ Headlamp UI reachable from Windows for visual cluster state.
 - ✅ Flux (GitOps) installed; Crossly's UI is the first real app, deployed through it. Also running: `cloudflared` and a minimal placeholder app (see `docs/cloudflare-tunnel.md`).
 - ⚠️ **Action needed**: `control`'s OS (Ubuntu 25.04) has been EOL/unsupported since 2026-01-15 — no security patches. Should be reflashed to Ubuntu 24.04 LTS (matching the workers) or upgraded to a current release. Not yet done.
-- 🐛 Known minor issue: `metrics-server` readiness probe flaky on `control` (cosmetic, CPU/memory graphs may be incomplete).
 - 💤 Cluster is intentionally powered off between sessions (user doesn't want it running 24/7) — if SSH/kubectl aren't responding, check whether it's just off before assuming something's broken. See "Power management".
 
 ## Hardware & network
