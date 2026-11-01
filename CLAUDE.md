@@ -19,6 +19,8 @@ Detailed knowledge is split into skills (`.claude/skills/<name>/`, listed by the
 
 **Keep skills and docs lean**: every one should stay as small as token budget allows *without* dropping anything that's actually useful — the test is "is this a durable fact about current state/config/how-to," not "is this interesting." Record what's true now (e.g. "`test.bozov-lab.com` is live and routes to X") and how things are configured/operated — never a log of what was tested, when, or how it was verified. If one accumulates that kind of history, strip it on the next major edit. If something needs re-confirming, re-check live state instead of trusting a stale note.
 
+**Comments**: avoid them, in manifests, scripts and any code. Make the file explain itself with clear names, small steps and one concern per object. Add a comment only where the logic is genuinely hard to reason about (a non-obvious constraint, a workaround, a surprising reason), and say *why*, never *what*. Put the rationale for a decision in the relevant skill or doc, not in the file.
+
 ## Always-relevant reminders
 
 - 💤 The cluster is intentionally powered off between sessions (home lab, not meant to run 24/7) — if SSH/kubectl aren't responding, check `docs/cluster.md` → Power management before assuming something's broken.

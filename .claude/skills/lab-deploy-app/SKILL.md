@@ -13,7 +13,7 @@ Several apps share this cluster. These rules keep them apart. Before choosing a 
 |---|---|
 | Namespace | One per app, named after it. Everything the app owns lives there |
 | Resource names | Prefix with the app name (`crossly-ui`), so names stay unique |
-| CPU, memory, pods | A ResourceQuota and a LimitRange in the namespace, sized from the budget in the registry. Never deploy an app without them |
+| CPU, memory, pods | A ResourceQuota and a LimitRange in the namespace, sized from the budget in the registry. Never deploy an app without them. A quota makes Kubernetes reject any container that declares no CPU or memory, so the LimitRange supplies defaults and a per-container maximum |
 | Storage | PVCs use the default Longhorn class (no `storageClassName`). The namespace quota caps the total (`requests.storage`) |
 | Public hostname | `<app>.bozov-lab.com`, one route per hostname, listed in the registry. The route is made in the Cloudflare dashboard and points at the ingress controller, `http://traefik.kube-system.svc.cluster.local:80`; the app's own Ingress matches the hostname (see `docs/cloudflare-tunnel.md`). The older `test` route points straight at its Service and predates this standard |
 | Ports | No NodePorts for apps: a ClusterIP Service plus an Ingress. (30219 Longhorn and 30519 Headlamp are taken) |

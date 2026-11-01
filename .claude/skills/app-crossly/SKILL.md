@@ -13,7 +13,7 @@ All of this is the intended setup. The registry in `lab-deploy-app` is the singl
 
 | | |
 |---|---|
-| Namespace | `crossly`, to be created from `apps/crossly/` in this repository (the product manifests do not create it) |
+| Namespace | `crossly`, to be created from `apps/crossly/` in this repository (the product manifests do not create it). Pod Security enforces `baseline` and only warns and audits `restricted`: the UI meets `restricted`, but the database images will not |
 | Public address | `https://crossly.bozov-lab.com`. No email is set up for this domain, so wherever a contact address is required use an existing mailbox |
 | Cloudflare route | `crossly.bozov-lab.com` to the ingress controller, `http://traefik.kube-system.svc.cluster.local:80`; the product's Ingress then matches the hostname |
 | Ingress host | The product manifests default to `crossly.localhost`. The lab will override it to `crossly.bozov-lab.com` with a patch in its Flux Kustomization |
