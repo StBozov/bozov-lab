@@ -55,6 +55,8 @@ This Claude Code session has a project-level `.claude/settings.json` allowing `s
 
 Troubleshooting Longhorn or Headlamp: `kubectl get pods -n <namespace> -o wide`, `kubectl get svc -n <namespace>`, `kubectl logs`, `helm status <release> -n <namespace>`.
 
+**`cloudflared`** (namespace `cloudflare-tunnel`) also runs in this cluster, connecting it to the public domain `bozov-lab.com` via a Cloudflare Tunnel — see `docs/cloudflare-tunnel.md` for full details, troubleshooting, and how to expose a new app.
+
 ## Validated so far
 
 - **Reboot resilience** (all 4 nodes, twice): k3s/k3s-agent systemd services come back with zero manual steps — survives something like a power outage.
