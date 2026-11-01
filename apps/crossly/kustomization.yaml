@@ -6,3 +6,8 @@ resources:
   - resourcequota.yaml
   - limitrange.yaml
   - networkpolicy.yaml
+  - serviceaccount.yaml
+  - role.yaml
+  - rolebinding.yaml
+  - gitrepository.yaml
+  - flux-kustomization.yaml

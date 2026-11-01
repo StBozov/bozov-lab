@@ -7,7 +7,7 @@ Everything about the 4-node Raspberry Pi 5 k3s cluster itself — hardware, acce
 - ✅ One single k3s cluster, 4 nodes, static IPs. Self-recovers automatically from a reboot, a single node going down, or a full power-off/power-on cycle — no manual steps needed in any case.
 - ✅ Longhorn storage pooling the 3 workers' NVMe drives (2 replicas, tolerates any 1 worker dying).
 - ✅ Headlamp UI reachable from Windows for visual cluster state.
-- ⏳ No real apps deployed yet beyond `cloudflared` and a minimal placeholder app (see `docs/cloudflare-tunnel.md`).
+- ✅ Flux (GitOps) installed; Crossly's UI is the first real app, deployed through it. Also running: `cloudflared` and a minimal placeholder app (see `docs/cloudflare-tunnel.md`).
 - ⚠️ **Action needed**: `control`'s OS (Ubuntu 25.04) has been EOL/unsupported since 2026-01-15 — no security patches. Should be reflashed to Ubuntu 24.04 LTS (matching the workers) or upgraded to a current release. Not yet done.
 - 🐛 Known minor issue: `metrics-server` readiness probe flaky on `control` (cosmetic, CPU/memory graphs may be incomplete).
 - 💤 Cluster is intentionally powered off between sessions (user doesn't want it running 24/7) — if SSH/kubectl aren't responding, check whether it's just off before assuming something's broken. See "Power management".
@@ -54,11 +54,13 @@ This Claude Code session has a project-level `.claude/settings.json` allowing `s
 
 Troubleshooting Longhorn or Headlamp: `kubectl get pods -n <namespace> -o wide`, `kubectl get svc -n <namespace>`, `kubectl logs`, `helm status <release> -n <namespace>`.
 
+**Flux** (GitOps, v2.10.0) — namespace `flux-system`, only `source-controller` and `kustomize-controller`. Manifests in `apps/flux-system/`: `flux-install.yaml` is generated (`flux install --export --components=source-controller,kustomize-controller`) and about 155 KB, so **never read it**; `kustomization.yaml` next to it adds `--default-service-account=flux-apply`, so a Kustomization that names no ServiceAccount fails instead of running as cluster-admin. Apply and upgrade with `kubectl apply --server-side` (the CRDs are too large for a plain apply). Per-app wiring is in the skill `lab-deploy-app`.
+
 **`cloudflared`** (namespace `cloudflare-tunnel`) also runs in this cluster, connecting it to the public domain `bozov-lab.com` via a Cloudflare Tunnel — see `docs/cloudflare-tunnel.md` for full details, troubleshooting, and how to expose a new app.
 
 ## Deploying apps
 
-Adding or changing an app (namespace, quota, hostnames, storage, network policy, GitOps, and avoiding collisions with other apps) is covered by the skill `lab-deploy-app` and its registry. Use that instead of working from this file. Manifests are applied by hand with `kubectl apply` for now; GitOps (Flux) is planned, starting with Crossly.
+Adding or changing an app (namespace, quota, hostnames, storage, network policy, GitOps, and avoiding collisions with other apps) is covered by the skill `lab-deploy-app` and its registry. Use that instead of working from this file. App manifests are delivered by Flux (see "What's installed"); platform manifests under `apps/` (such as `apps/crossly/`, `apps/flux-system/`) are applied by hand with `kubectl apply`.
 
 - `.github/workflows/` is reserved for automation that shouldn't depend on the home lab's uptime/power (CI checks, image builds, scheduled jobs hitting external services) — not yet set up, nothing needs it yet.
 

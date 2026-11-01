@@ -14,6 +14,7 @@ Detailed knowledge is split into skills (`.claude/skills/<name>/`, listed by the
 | Anything about Crossly on this cluster | skill `app-crossly` |
 | Hardware, network, SSH, storage (Longhorn), Headlamp, power management | [`docs/cluster.md`](docs/cluster.md) |
 | Public access, Cloudflare Tunnel, adding a route | [`docs/cloudflare-tunnel.md`](docs/cloudflare-tunnel.md) |
+| Flux install or upgrade | `docs/cluster.md` → What's installed. Never read `apps/flux-system/flux-install.yaml` (generated, 155 KB) |
 
 **Git workflow**: this is a personal repository (`StBozov/bozov-lab`, default branch `main`). Commit and push **straight to `main`** — no branches, no pull requests. Never commit or push without first showing the user what will go in (docs, manifests and scripts alike) and getting an explicit "yes" for that commit. Keep docs and skills up to date on every major change; minor in-progress edits need no round-trip, but the final version going to git does. Keep the existing git identity (`stbozov`).
 

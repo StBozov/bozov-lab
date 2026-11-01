@@ -19,14 +19,14 @@ Several apps share this cluster. These rules keep them apart. Before choosing a 
 | Ports | No NodePorts for apps: a ClusterIP Service plus an Ingress. (30219 Longhorn and 30519 Headlamp are taken) |
 | Network | Default-deny NetworkPolicy for **both ingress and egress** in the namespace, then allow only what the app needs: the ingress controller (Traefik, in `kube-system`) reaching its pods, **DNS (CoreDNS in `kube-system`, port 53 over UDP and TCP) — without it nothing resolves**, traffic between the app's own pods, and any outside service it must call |
 | Secrets | Created with `kubectl` in the app's namespace and never committed. Document names and keys, not values |
-| GitOps (Flux, once installed) | One Flux Kustomization per app, with its own source path and its own ServiceAccount limited to the app's namespace. Never one object that applies several apps |
+| GitOps (Flux) | In the app's namespace: a `GitRepository`, a `Kustomization` with `serviceAccountName: flux-apply`, and a ServiceAccount, Role and RoleBinding all named `flux-apply`. The Role grants only the kinds the app deploys, plus read-only `replicasets` (Flux needs it to judge a Deployment healthy). It never grants Secrets, Pods, quotas, limit ranges, NetworkPolicies or RBAC, so the product repository cannot loosen its own fencing. Add a kind to the Role only when a slice needs it. Never one object that applies several apps |
 | Files in this repo | An app edits only `apps/<app>/`, its own `app-<app>` skill and its own registry row |
 
 ## Adding an app
 
 1. Choose the name. Check the registry for the namespace, hostname and ports.
 2. Add the app's row with its intended quota, and check that the budget still fits.
-3. Create `apps/<app>/` with `namespace.yaml` (label `app.kubernetes.io/part-of: <app>`), `resourcequota.yaml`, `limitrange.yaml` and `networkpolicy.yaml`, then the app's own manifests or Flux wiring.
+3. Create `apps/<app>/` with `namespace.yaml` (label `app.kubernetes.io/part-of: <app>`), `resourcequota.yaml`, `limitrange.yaml`, `networkpolicy.yaml` and the Flux wiring (`serviceaccount.yaml`, `role.yaml`, `rolebinding.yaml`, `gitrepository.yaml`, `flux-kustomization.yaml`), listed in a `kustomization.yaml` that you apply by hand.
 4. Show the rendered manifests and a server-side dry run (`kubectl apply --dry-run=server`) before applying anything live.
 5. Apply, confirm the pods are Ready, and check the namespace events for warnings. Then prove the network policy really enforces: a pod that is not allowed must fail to reach the app, since a policy that is not enforced looks the same as one that is. Test with pods that have been running for at least 20 seconds, because the policy controller programs a new pod's firewall a moment after it starts, and until then it can reach anything. Include a control in a namespace without policies, so a blocked request means the policy and not a broken network.
 6. Add the Cloudflare route, and verify it with `curl -I https://<hostname>/`.
